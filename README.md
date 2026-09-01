@@ -164,7 +164,7 @@ generic-host programs:
 | ---------------------------- | ----------------------------- | ------------------- | ------------------ | ------------- |
 | A — plain sample             | `CreateApplicationBuilder`     | none                | 20 lines, `info:`  | none          |
 | B — A plus one `LogManager` call | `CreateApplicationBuilder` | one line            | same               | that one line |
-| C — the earlier GenericHost test | `CreateEmptyApplicationBuilder` | none            | bare, unprefixed   | everything    |
+| C — Particular's validation harness | `CreateEmptyApplicationBuilder` | none            | bare, unprefixed   | everything    |
 
 **Condition 1 — the host registers no logging providers of its own.**
 `Host.CreateEmptyApplicationBuilder` registers none, so NServiceBus' own file and console
@@ -179,12 +179,15 @@ one line (variant B).
 
 ### Why the suggested fix passed locally and failed in production
 
-The GenericHost sample used to validate `NullLoggerProvider` fails **condition 1**, and
-`builder.Logging.AddProvider` genuinely fixes condition 1.
+The harness Particular used to validate `NullLoggerProvider` before sending it - a modified
+docs.particular.net GenericHost sample using `Host.CreateEmptyApplicationBuilder` - fails
+**condition 1**, and `builder.Logging.AddProvider` genuinely fixes condition 1.
 
-The customer's app fails **condition 2**. They already have providers registered - App
-Insights plus the ASP.NET Core defaults - so condition 1 was never their problem. Their file
-comes from the fallback factory, which `AddProvider` cannot reach.
+The customer's app fails **condition 2**. Their host is `WebApplicationBuilder` - the declared
+parameter type in the code on the ticket, so this is evidenced rather than inferred - and it
+already registers providers: App Insights plus the ASP.NET Core defaults. Condition 1 was
+never their problem. Their file comes from the fallback factory, which `AddProvider` cannot
+reach.
 
 The two reproduce the same symptom through different mechanisms, which is why the fix
 validated against one did nothing for the other.
