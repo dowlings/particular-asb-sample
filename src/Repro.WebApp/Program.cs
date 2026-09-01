@@ -78,7 +78,7 @@ static void ConfigureNServiceBus(WebApplicationBuilder builder, AppSettings appS
         case LoggingMode.LogManagerUseFactory:
             // Point LogManager at Microsoft.Extensions.Logging before anything else
             // runs. This is the NServiceBus.Extensions.Logging bridge the customer skipped.
-#pragma warning disable CS0618 // deprecated in 10.2, scheduled for removal in 12
+#pragma warning disable CS0618 // UseFactory: error from NServiceBus 11. ExtensionsLoggerFactory: error from Extensions.Logging 5
             LogManager.UseFactory(new ExtensionsLoggerFactory(CreateLoggerFactory(builder)));
 #pragma warning restore CS0618
             break;

@@ -134,11 +134,21 @@ documentation flags that case. This is a reasonable read of the docs that hits a
 undocumented edge, not a customer mistake.
 
 Worth telling them that on 10.2.8 this is currently the only wire-up that suppresses the
-file, and that both `LogManager.UseFactory` and `ExtensionsLoggerFactory` are marked obsolete
-(error from v11, removed in v12) — so it is a workaround with a shelf life. The obsolete
-message points users to "configure logging on the host builder", which is exactly what does
-not work here. That looks like something to raise with the NServiceBus team rather than
-leave as guidance.
+file — and that it is a workaround with a shelf life. Both halves are deprecated, on
+different schedules and in different packages:
+
+| API                      | Package                        | Error from | Removed in |
+| ------------------------ | ------------------------------ | ---------- | ---------- |
+| `LogManager.UseFactory`  | `NServiceBus`                  | 11         | 12         |
+| `ExtensionsLoggerFactory`| `NServiceBus.Extensions.Logging` | 5        | 6          |
+
+The binding deadline is the bridge package, not core. `NServiceBus.Extensions.Logging` is at
+4.1.0 today — which is the version the customer already has — so its next major removes the
+only fix we currently have, likely well before NServiceBus 12.
+
+Both obsolete messages point users to "configure logging on the host builder", which is
+exactly what does not work for out-of-slot statements. That looks like something to raise
+with the NServiceBus team rather than leave as guidance.
 
 ## Running it
 
