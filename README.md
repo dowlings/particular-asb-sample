@@ -122,12 +122,23 @@ true. Two things follow:
 2. `GetDefaultLogger()` uses the supplied factory instead of `FallbackLoggerFactory`, so
    out-of-slot logs go to MEL too.
 
-This is the `UseLogger` / `NServiceBus.Extensions.Logging` approach the customer explicitly
-chose *not* to adopt. Worth telling them that on 10.2.8 it is currently the only wire-up that
-suppresses the file, and that both `LogManager.UseFactory` and `ExtensionsLoggerFactory` are
-marked obsolete (error from v11, removed in v12) — so this is a workaround with a shelf life,
-and the underlying fallback behaviour looks like something we should raise with the
-NServiceBus team rather than leave as guidance.
+This is the `NServiceBus.Extensions.Logging` bridge. The ticket says "we are not using
+UseLogger, as suggested by NServicebus, since AddNServiceBusEndpoint would use the default
+.net Logger" — there is no `UseLogger` API in any Particular repo, so they were most likely
+referring to this bridge, the one package on their list they reference but never call.
+
+Their reasoning was half-right, and the correct half matters: `AddNServiceBusEndpoint`
+**does** use the .NET logger, for every in-slot log statement. That is why their App Insights
+data looks right. The inference only fails for out-of-slot statements, and nothing in the
+documentation flags that case. This is a reasonable read of the docs that hits an
+undocumented edge, not a customer mistake.
+
+Worth telling them that on 10.2.8 this is currently the only wire-up that suppresses the
+file, and that both `LogManager.UseFactory` and `ExtensionsLoggerFactory` are marked obsolete
+(error from v11, removed in v12) — so it is a workaround with a shelf life. The obsolete
+message points users to "configure logging on the host builder", which is exactly what does
+not work here. That looks like something to raise with the NServiceBus team rather than
+leave as guidance.
 
 ## Running it
 
