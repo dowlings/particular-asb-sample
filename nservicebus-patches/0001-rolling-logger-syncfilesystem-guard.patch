@@ -1,0 +1,89 @@
+From 9ffa0d90bab2526d90bf386224783e8a64c5792a Mon Sep 17 00:00:00 2001
+From: Claude <claude@dowling.co.nz>
+Date: Tue, 1 Sep 2026 09:43:54 +0000
+Subject: [PATCH] Do not let log file preparation throw into calling code
+
+RollingLogger.WriteLine calls SyncFileSystem outside the try/catch that already
+guards the write itself. SyncFileSystem enumerates the target directory and
+reads the size of the newest matching file, and both can fail when another
+process removes files concurrently.
+
+When that happens the exception propagates out of the log statement. Because
+Microsoft.Extensions.Logging aggregates provider failures and rethrows them, an
+NServiceBus log call can then take down whatever invoked it. Reported on Azure
+App Service, where a component logging from IDisposable.Dispose during container
+disposal crashed the host:
+
+  System.IO.FileNotFoundException: Could not find file '...\nsb_log_2026-07-21_0.txt'
+     at System.IO.FileInfo.get_Length()
+     at NServiceBus.RollingLogger.CalculateNewFileName(...) RollingLogger.cs:line 140
+     at NServiceBus.RollingLogger.SyncFileSystem() RollingLogger.cs:line 54
+     at NServiceBus.RollingLogger.WriteLine(String message) RollingLogger.cs:line 21
+
+Treat a failure to prepare the file the same way a failed write is already
+treated: trace it and move on.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ .../Logging/RollingLoggerTests.cs             | 21 ++++++++++++++++++-
+ src/NServiceBus.Core/Logging/RollingLogger.cs | 14 ++++++++++++-
+ 2 files changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/src/NServiceBus.Core.Tests/Logging/RollingLoggerTests.cs b/src/NServiceBus.Core.Tests/Logging/RollingLoggerTests.cs
+index 7f201b6..d42d6c4 100644
+--- a/src/NServiceBus.Core.Tests/Logging/RollingLoggerTests.cs
++++ b/src/NServiceBus.Core.Tests/Logging/RollingLoggerTests.cs
+@@ -396,4 +396,23 @@ public class RollingLoggerTests
+         var singleFile = tempPath.GetSingle();
+         Assert.That(Path.GetFileName(singleFile), Is.EqualTo("nsb_log_2010-10-01_0.txt"));
+     }
+-}
+\ No newline at end of file
++
++    [Test]
++    public void When_target_directory_is_missing_exception_is_swallowed()
++    {
++        using var tempPath = new TempPath("RollingLoggerTests");
++        var missingDirectory = Path.Combine(tempPath.TempDirectory, "gone");
++        Directory.CreateDirectory(missingDirectory);
++
++        var logger = new RollingLogger(missingDirectory)
++        {
++            GetDate = () => new DateTimeOffset(2010, 10, 1, 0, 0, 0, TimeSpan.Zero)
++        };
++
++        // The directory disappears after the logger is created but before its first
++        // write, which is when SyncFileSystem enumerates it to choose a file name.
++        Directory.Delete(missingDirectory, true);
++
++        Assert.DoesNotThrow(() => logger.WriteLine("Foo"));
++    }
++}
+diff --git a/src/NServiceBus.Core/Logging/RollingLogger.cs b/src/NServiceBus.Core/Logging/RollingLogger.cs
+index a1bbcd0..66bafbd 100644
+--- a/src/NServiceBus.Core/Logging/RollingLogger.cs
++++ b/src/NServiceBus.Core/Logging/RollingLogger.cs
+@@ -18,7 +18,19 @@ class RollingLogger(
+ {
+     public void WriteLine(string message)
+     {
+-        SyncFileSystem();
++        try
++        {
++            SyncFileSystem();
++        }
++        catch (Exception exception)
++        {
++            // Choosing the file name enumerates the directory and reads file sizes, both of
++            // which can fail if another process removes files concurrently. Logging must never
++            // throw into calling code, so treat this the same way a failed write is treated.
++            Trace.WriteLine($"NServiceBus.RollingLogger Could not prepare log file in '{targetDirectory}'. Exception: {exception}");
++            return;
++        }
++
+         InnerWrite(message);
+     }
+ 
+-- 
+2.39.5
+
