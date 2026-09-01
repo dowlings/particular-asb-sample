@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Repro.LoggerFix</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Points at a local NServiceBus checkout so the fix can be swapped in by editing
+    RollingLogger.cs and rebuilding. Override on the command line:
+
+      dotnet run -p:NServiceBusPath=/path/to/NServiceBus
+
+    Build the analyzer projects in that checkout once first, or NServiceBus.Core
+    fails to pack them:
+
+      dotnet build src/NServiceBus.Core.Analyzer/NServiceBus.Core.Analyzer.csproj
+      dotnet build src/NServiceBus.Core.Analyzer.Fixes/NServiceBus.Core.Analyzer.Fixes.csproj
+  -->
+  <PropertyGroup>
+    <NServiceBusPath Condition="'$(NServiceBusPath)' == ''">../../../NServiceBus</NServiceBusPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.Extensions.Hosting" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(NServiceBusPath)/src/NServiceBus.Core/NServiceBus.Core.csproj" />
+  </ItemGroup>
+
+</Project>
