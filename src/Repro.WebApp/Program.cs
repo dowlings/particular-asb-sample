@@ -20,6 +20,17 @@ ConfigureNServiceBus(builder, appSettings, loggingMode);
 
 var app = builder.Build();
 
+// The host's ILoggerFactory does not exist until the container is built, so this
+// cannot run alongside the other variants. The providers EndpointCreator registered
+// are already inert (App Insights / console providers disable them), and nothing has
+// logged out-of-slot yet, so setting the factory here is not too late.
+if (loggingMode == LoggingMode.HostFactoryAfterBuild)
+{
+#pragma warning disable CS0618
+    LogManager.UseFactory(new ExtensionsLoggerFactory(app.Services.GetRequiredService<ILoggerFactory>()));
+#pragma warning restore CS0618
+}
+
 app.MapGet("/", () => Results.Text(LogFileProbe.Report(loggingMode, "on request"), "text/plain"));
 
 app.MapPost("/ping", async (IMessageSession messageSession) =>

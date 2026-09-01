@@ -222,6 +222,38 @@ And the asymmetry is the real bug story: same NServiceBus version, same transpor
 Functions host is immune and the generic/web host is not — purely because one package sets
 the factory in a static constructor and `AddNServiceBusEndpoint` does not.
 
+### The recommended fix
+
+Pass the **host's own** `ILoggerFactory` — the one App Insights registered into — rather than
+a separate factory built by hand:
+
+```csharp
+var app = builder.Build();
+
+#pragma warning disable CS0618
+LogManager.UseFactory(new ExtensionsLoggerFactory(app.Services.GetRequiredService<ILoggerFactory>()));
+#pragma warning restore CS0618
+
+await app.RunAsync();
+```
+
+Building a standalone `LoggerFactory.Create(...)` also stops the file, but
+`ExternalLoggerFactoryAdapter.GetLogger` routes **every** NServiceBus log through whatever
+factory is supplied — in-slot included. A console-only factory therefore silently stops
+NServiceBus logs reaching App Insights, which is the behaviour the ticket asks to preserve.
+
+Calling this after `builder.Build()` is not too late. The providers `EndpointCreator`
+registered are already inert, because App Insights and the ASP.NET Core defaults disable
+them, and nothing logs out-of-slot between `AddNServiceBusEndpoint` and this line.
+
+Measured: no file; out-of-slot entries arrive on the host pipeline as
+`info: Repro.OutOfSlotComponent[0]`; in-slot NServiceBus logs continue unchanged; shutdown
+completes cleanly with an App Insights provider registered.
+
+There is in principle a window between `AddNServiceBusEndpoint` and this call. Nothing logs
+out-of-slot in it here, but a deferred factory that resolves the host's `ILoggerFactory`
+lazily would close it - the same pattern `FunctionsLoggerFactory` uses.
+
 ## Every way to control the default logging
 
 The complete public surface for influencing NServiceBus logging in 10.2.8 is five
@@ -280,6 +312,7 @@ LoggingMode=NullLoggerProvider dotnet run --project src/Repro.WebApp
 | `LogManagerUseFactory`    | `LogManager.UseFactory(new ExtensionsLoggerFactory(...))`         | **no file**, logs go to MEL     |
 | `DefaultFactoryLevelFatal`  | `LogManager.Use<DefaultFactory>().Level(Fatal)`                   | no file — but silences everything |
 | `CustomFactoryDefinition` | Own `LoggingFactoryDefinition` over MEL, no extra package          | **no file**, logs go to MEL     |
+| `HostFactoryAfterBuild` | `UseFactory` with the **host's** `ILoggerFactory`, after `Build()`   | **no file**, logs keep App Insights |
 
 Verified on .NET SDK 10.0.400, NServiceBus 10.2.8. Each run starts the web app,
 sends it `SIGINT` after 12s and prints the probe report after graceful shutdown.

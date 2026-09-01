@@ -25,7 +25,10 @@ enum LoggingMode
     DefaultFactoryLevelFatal,
 
     /// <summary>Custom LoggingFactoryDefinition wrapping MEL - no Extensions.Logging package.</summary>
-    CustomFactoryDefinition
+    CustomFactoryDefinition,
+
+    /// <summary>Point LogManager at the HOST's ILoggerFactory, after builder.Build().</summary>
+    HostFactoryAfterBuild
 }
 
 static class LoggingModes
