@@ -1,0 +1,8 @@
+<!--
+  Copy to nservicebus.local.props (gitignored) and set the path to your NServiceBus clone.
+-->
+<Project>
+  <PropertyGroup>
+    <NServiceBusPath>C:\Repos-Particular\NServiceBus</NServiceBusPath>
+  </PropertyGroup>
+</Project>

@@ -101,3 +101,33 @@ that Microsoft.Extensions.Logging rethrows, enable first-chance breaking: in Vis
 
 Remember the failure only happens on shutdown, so trigger Ctrl+C once the endpoint has
 started.
+
+## NU1105: Unable to find project information for NServiceBus.Core.csproj
+
+NuGet cannot evaluate a `ProjectReference` to a project that is not in the loaded solution.
+`Repro.LoggerFix` deliberately references NServiceBus by path, so in an IDE you need a
+solution containing both. Create one - it is gitignored, since the path is machine-specific:
+
+```
+dotnet new sln -n LoggerFixDebug
+dotnet sln LoggerFixDebug.slnx add src/Repro.LoggerFix/Repro.LoggerFix.csproj
+dotnet sln LoggerFixDebug.slnx add C:\Repos-Particular\NServiceBus\src\NServiceBus.Core\NServiceBus.Core.csproj
+dotnet sln LoggerFixDebug.slnx add C:\Repos-Particular\NServiceBus\src\NServiceBus.Core.Analyzer\NServiceBus.Core.Analyzer.csproj
+dotnet sln LoggerFixDebug.slnx add C:\Repos-Particular\NServiceBus\src\NServiceBus.Core.Analyzer.Fixes\NServiceBus.Core.Analyzer.Fixes.csproj
+```
+
+Open `LoggerFixDebug.slnx` and debug `Repro.LoggerFix` from there. This is also nicer for
+swapping the fix, since `RollingLogger.cs` is then in the same solution.
+
+From the command line there is no solution involved and it restores without any of this:
+
+```
+dotnet run --project src/Repro.LoggerFix -p:NServiceBusPath=C:\Repos-Particular\NServiceBus -- --debug
+```
+
+## Setting the path
+
+The project defaults `NServiceBusPath` to `../../../NServiceBus`, a sibling of this repo. If
+your clone is elsewhere, copy `nservicebus.local.props.example` to `nservicebus.local.props`
+in the repo root and set the path there - no need to edit the csproj. That file is
+gitignored.

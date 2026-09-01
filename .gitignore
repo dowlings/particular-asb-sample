@@ -4,3 +4,5 @@ obj/
 *.user
 nsb_log_*.txt
 .learningtransport/
+nservicebus.local.props
+LoggerFixDebug.slnx

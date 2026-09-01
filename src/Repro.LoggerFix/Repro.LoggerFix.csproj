@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="$(MSBuildThisFileDirectory)..\..\nservicebus.local.props" Condition="Exists('$(MSBuildThisFileDirectory)..\..\nservicebus.local.props')" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Repro.LoggerFix</RootNamespace>
@@ -17,6 +19,7 @@
       dotnet build src/NServiceBus.Core.Analyzer/NServiceBus.Core.Analyzer.csproj
       dotnet build src/NServiceBus.Core.Analyzer.Fixes/NServiceBus.Core.Analyzer.Fixes.csproj
   -->
+
   <PropertyGroup>
     <NServiceBusPath Condition="'$(NServiceBusPath)' == ''">../../../NServiceBus</NServiceBusPath>
   </PropertyGroup>
