@@ -19,7 +19,13 @@ enum LoggingMode
     DefaultFactoryDirectory,
 
     /// <summary>Point NServiceBus at a Microsoft.Extensions.Logging factory before anything else runs.</summary>
-    LogManagerUseFactory
+    LogManagerUseFactory,
+
+    /// <summary>Raise the fallback logger's minimum level so nothing below Fatal is written.</summary>
+    DefaultFactoryLevelFatal,
+
+    /// <summary>Custom LoggingFactoryDefinition wrapping MEL - no Extensions.Logging package.</summary>
+    CustomFactoryDefinition
 }
 
 static class LoggingModes

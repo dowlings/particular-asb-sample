@@ -155,6 +155,40 @@ move to NServiceBus 11, `LogManager.UseFactory` becomes a compile error and ther
 supported fix left. That is worth raising with the NServiceBus team on its own merits, not
 because of any deadline — I have no information about the release timing of either package.
 
+## Every way to control the default logging
+
+The complete public surface for influencing NServiceBus logging in 10.2.8 is five
+things. All of them are measured below; only the last two are worth using.
+
+| Approach                                                | Stops the file? | Notes                                                   |
+| ------------------------------------------------------- | --------------- | ------------------------------------------------------- |
+| `builder.Logging.AddProvider(...)`                       | no              | host container only — cannot reach the fallback          |
+| `Configure<RollingLoggerProviderOptions>(...)`            | no              | host container only — cannot reach the fallback          |
+| `LogManager.Use<DefaultFactory>().Directory(x)`           | no              | still on disk, just somewhere else                       |
+| `LogManager.Use<DefaultFactory>().Level(Fatal)`           | yes             | **silences the entire host logging pipeline — avoid**    |
+| `LogManager.UseFactory(new ExtensionsLoggerFactory(f))`   | yes             | needs the deprecated Extensions.Logging package          |
+| `LogManager.Use<TCustom>()` with your own definition      | yes             | ~40 lines you own, no extra package                      |
+
+Note what this means: **the only non-obsolete option, `Configure<RollingLoggerProviderOptions>`,
+cannot control the fallback logger at all.** `FallbackLoggerFactory` builds its private
+container from `DefaultFactory`'s directory and level alone, so the only reachable knobs are
+deprecated ones.
+
+### Why `Level(Fatal)` must not be used
+
+It does suppress the file, but `AddNServiceBusLoggingProviders` calls `SetMinimumLevel` on
+the **host's** logging builder, not just its own providers. In the measured run the entire
+console output was the probe report — no ASP.NET Core startup logs, no NServiceBus logs,
+nothing. It would silence their App Insights telemetry too.
+
+### The option worth recommending
+
+`LoggingMode=CustomFactoryDefinition` (see `CustomLogging.cs`) implements
+`LoggingFactoryDefinition` and `ILog` directly over `Microsoft.Extensions.Logging`. It
+suppresses the file, routes every log statement — in-slot and out-of-slot — to the host
+pipeline, and drops the dependency on `NServiceBus.Extensions.Logging` entirely. That leaves
+`LogManager.Use<T>` in core as the only deprecated API in play instead of two.
+
 ## Running it
 
 ```bash
@@ -177,6 +211,8 @@ LoggingMode=NullLoggerProvider dotnet run --project src/Repro.WebApp
 | `RollingLoggerOptions`    | `Configure<RollingLoggerProviderOptions>` — host container only   | **file still written**          |
 | `DefaultFactoryDirectory` | `LogManager.Use<DefaultFactory>().Directory(...)`                 | redirected, but still on disk   |
 | `LogManagerUseFactory`    | `LogManager.UseFactory(new ExtensionsLoggerFactory(...))`         | **no file**, logs go to MEL     |
+| `DefaultFactoryLevelFatal`  | `LogManager.Use<DefaultFactory>().Level(Fatal)`                   | no file — but silences everything |
+| `CustomFactoryDefinition` | Own `LoggingFactoryDefinition` over MEL, no extra package          | **no file**, logs go to MEL     |
 
 Verified on .NET SDK 10.0.400, NServiceBus 10.2.8. Each run starts the web app,
 sends it `SIGINT` after 12s and prints the probe report after graceful shutdown.

@@ -82,6 +82,23 @@ static void ConfigureNServiceBus(WebApplicationBuilder builder, AppSettings appS
             LogManager.UseFactory(new ExtensionsLoggerFactory(CreateLoggerFactory(builder)));
 #pragma warning restore CS0618
             break;
+
+        case LoggingMode.DefaultFactoryLevelFatal:
+            // Minimal change: leave everything else alone and just raise the
+            // fallback logger's minimum level. Fatal entries would still be written.
+#pragma warning disable CS0618
+            LogManager.Use<DefaultFactory>().Level(NServiceBus.Logging.LogLevel.Fatal);
+#pragma warning restore CS0618
+            break;
+
+        case LoggingMode.CustomFactoryDefinition:
+            // Same effect as LogManagerUseFactory, but implemented in this repo
+            // instead of via the NServiceBus.Extensions.Logging package.
+            MelLoggingFactoryDefinition.Factory = CreateLoggerFactory(builder);
+#pragma warning disable CS0618
+            LogManager.Use<MelLoggingFactoryDefinition>();
+#pragma warning restore CS0618
+            break;
     }
 
     builder.Host

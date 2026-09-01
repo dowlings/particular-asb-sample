@@ -9,7 +9,7 @@ dotnet build src/Repro.WebApp/Repro.WebApp.csproj -v q || exit 1
 
 app=src/Repro.WebApp/bin/Debug/net10.0/Repro.WebApp.dll
 
-for mode in Customer NullLoggerProvider RollingLoggerOptions DefaultFactoryDirectory LogManagerUseFactory; do
+for mode in Customer NullLoggerProvider RollingLoggerOptions DefaultFactoryDirectory LogManagerUseFactory DefaultFactoryLevelFatal CustomFactoryDefinition; do
     rm -f src/Repro.WebApp/bin/Debug/net10.0/nsb_log_*.txt "${TMPDIR:-/tmp}"/nsb-logging-repro/nsb_log_*.txt
     printf '\n########## %s ##########\n' "$mode"
     LoggingMode="$mode" timeout -s INT 12 dotnet "$app" 2>&1 \
