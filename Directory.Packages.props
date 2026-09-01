@@ -1,0 +1,36 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!--
+    Versions below are exactly the ones reported on the support ticket
+    (Strasz Assessment Systems / AICPA). Do not bump them: the point of this
+    repository is to reproduce that environment.
+  -->
+  <ItemGroup Label="Customer-reported NServiceBus versions">
+    <PackageVersion Include="NServiceBus" Version="10.2.8" />
+    <PackageVersion Include="NServiceBus.Callbacks" Version="6.0.1" />
+    <PackageVersion Include="NServiceBus.ClaimCheck" Version="2.0.1" />
+    <PackageVersion Include="NServiceBus.DataBus.AzureBlobStorage" Version="7.0.1" />
+    <PackageVersion Include="NServiceBus.Extensions.Logging" Version="4.1.0" />
+    <PackageVersion Include="NServiceBus.Metrics.ServiceControl" Version="6.0.1" />
+    <PackageVersion Include="NServiceBus.Newtonsoft.Json" Version="5.0.1" />
+    <PackageVersion Include="NServiceBus.Persistence.CosmosDB" Version="4.1.0" />
+    <PackageVersion Include="NServiceBus.SagaAudit" Version="6.0.1" />
+    <PackageVersion Include="NServiceBus.Transport.AzureServiceBus" Version="6.5.0" />
+    <!--
+      NServiceBus.AzureFunctions.Worker.ServiceBus 7.1.2 is on the ticket's package
+      list but is deliberately NOT referenced here - see README "Which host?".
+      It belongs to a sibling Azure Functions project, not to the web app whose
+      Program.cs the customer pasted.
+    -->
+  </ItemGroup>
+
+  <ItemGroup Label="Host">
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.1.2" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+  </ItemGroup>
+
+</Project>

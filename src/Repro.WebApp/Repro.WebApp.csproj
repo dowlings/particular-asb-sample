@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>Repro.WebApp</RootNamespace>
+    <UserSecretsId>nsb-logging-repro</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <!--
+    Configured by this sample.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NServiceBus" />
+    <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+    <PackageReference Include="NServiceBus.Newtonsoft.Json" />
+    <PackageReference Include="NServiceBus.Extensions.Logging" />
+  </ItemGroup>
+
+  <!--
+    Referenced but not configured. These are on the customer's package list, and
+    they are kept here on purpose: they participate in assembly scanning and in
+    the static-ILog population that this repro is about, so dropping them would
+    make the sample less faithful.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NServiceBus.Callbacks" />
+    <PackageReference Include="NServiceBus.ClaimCheck" />
+    <PackageReference Include="NServiceBus.DataBus.AzureBlobStorage" />
+    <PackageReference Include="NServiceBus.Metrics.ServiceControl" />
+    <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+    <PackageReference Include="NServiceBus.SagaAudit" />
+  </ItemGroup>
+
+</Project>

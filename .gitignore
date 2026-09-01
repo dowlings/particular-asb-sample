@@ -1,0 +1,6 @@
+bin/
+obj/
+.vs/
+*.user
+nsb_log_*.txt
+.learningtransport/
