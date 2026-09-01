@@ -155,6 +155,43 @@ move to NServiceBus 11, `LogManager.UseFactory` becomes a compile error and ther
 supported fix left. That is worth raising with the NServiceBus team on its own merits, not
 because of any deadline — I have no information about the release timing of either package.
 
+## The two conditions
+
+A file appears only when **one of these two** is true. Measured with three minimal
+generic-host programs:
+
+| Variant                      | Host builder                  | Out-of-slot logging | Console            | File          |
+| ---------------------------- | ----------------------------- | ------------------- | ------------------ | ------------- |
+| A — plain sample             | `CreateApplicationBuilder`     | none                | 20 lines, `info:`  | none          |
+| B — A plus one `LogManager` call | `CreateApplicationBuilder` | one line            | same               | that one line |
+| C — the earlier GenericHost test | `CreateEmptyApplicationBuilder` | none            | bare, unprefixed   | everything    |
+
+**Condition 1 — the host registers no logging providers of its own.**
+`Host.CreateEmptyApplicationBuilder` registers none, so NServiceBus' own file and console
+providers stay enabled and capture everything (variant C). `Host.CreateApplicationBuilder`
+and `WebApplication.CreateBuilder` both register Console/Debug/EventSource, which disables
+them. The `info:` prefix is the tell: prefixed means the host's Console provider, bare means
+NServiceBus' colored console provider.
+
+**Condition 2 — something logs outside an endpoint slot.** Adding a single
+`LogManager.GetLogger("X").Info(...)` to variant A produces a file containing exactly that
+one line (variant B).
+
+### Why the suggested fix passed locally and failed in production
+
+The GenericHost sample used to validate `NullLoggerProvider` fails **condition 1**, and
+`builder.Logging.AddProvider` genuinely fixes condition 1.
+
+The customer's app fails **condition 2**. They already have providers registered - App
+Insights plus the ASP.NET Core defaults - so condition 1 was never their problem. Their file
+comes from the fallback factory, which `AddProvider` cannot reach.
+
+The two reproduce the same symptom through different mechanisms, which is why the fix
+validated against one did nothing for the other.
+
+This also means the customer's problem is not about their choice of host. Something in their
+application logs through `LogManager` outside an endpoint slot. Worth asking them what.
+
 ## Why the Azure Functions host does not have this problem
 
 An `NServiceBusTriggerFunction` app on the same NServiceBus version never writes the file.
