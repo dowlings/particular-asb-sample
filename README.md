@@ -144,16 +144,45 @@ Select a variant with the `LoggingMode` environment variable:
 LoggingMode=NullLoggerProvider dotnet run --project src/Repro.WebApp
 ```
 
-| `LoggingMode`             | What it does                                                       | Predicted result           |
-| ------------------------- | ------------------------------------------------------------------ | -------------------------- |
-| `Customer` (default)      | The ticket as filed                                                 | file written to output dir |
-| `NullLoggerProvider`      | The fix we suggested                                                | **still written**          |
-| `RollingLoggerOptions`    | `Configure<RollingLoggerProviderOptions>` — host container only      | **still written**          |
-| `DefaultFactoryDirectory` | `LogManager.Use<DefaultFactory>().Directory(...)`                    | written, but redirected    |
-| `LogManagerUseFactory`    | `LogManager.UseFactory(new ExtensionsLoggerFactory(...))`            | no file                    |
+| `LoggingMode`             | What it does                                                    | Result                          |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------- |
+| `Customer` (default)      | The ticket as filed                                              | **file written** to output dir  |
+| `NullLoggerProvider`      | The fix we suggested                                             | **file still written**          |
+| `RollingLoggerOptions`    | `Configure<RollingLoggerProviderOptions>` — host container only   | **file still written**          |
+| `DefaultFactoryDirectory` | `LogManager.Use<DefaultFactory>().Directory(...)`                 | redirected, but still on disk   |
+| `LogManagerUseFactory`    | `LogManager.UseFactory(new ExtensionsLoggerFactory(...))`         | **no file**, logs go to MEL     |
 
-> These predictions are read off the NServiceBus 10.2.8 source, **not** yet confirmed by a
-> run — see "Status" below.
+Verified on .NET SDK 10.0.400, NServiceBus 10.2.8. Each run starts the web app,
+sends it `SIGINT` after 12s and prints the probe report after graceful shutdown.
+
+### The tell in the console output
+
+In every failing mode the three out-of-slot messages print as bare lines while
+every other NServiceBus message carries an `info:` prefix:
+
+```
+Web app starting up                       <-- fallback factory's console provider
+info: NServiceBus.LicenseManager[0]       <-- host's MEL pipeline
+      No valid license could be found...
+ApplicationStopping                       <-- fallback again
+```
+
+Under `LogManagerUseFactory` they join the host pipeline instead, and nothing is
+lost:
+
+```
+info: Repro.OutOfSlotComponent[0] Web app starting up
+info: Repro.OutOfSlotComponent[0] ApplicationStopping
+info: Repro.OutOfSlotComponent[0] ApplicationStopped
+```
+
+The contents of the file confirm only out-of-slot logs land there:
+
+```
+2026-09-01 03:28:50.970 INFO  Web app starting up
+2026-09-01 03:29:05.503 INFO  ApplicationStopping
+2026-09-01 03:29:05.564 INFO  ApplicationStopped
+```
 
 ### Pointing it at real Azure
 
@@ -174,8 +203,12 @@ outgoing process.
 
 ## Status
 
-Written against the NServiceBus 10.2.8 sources; **not compiled or run** — the machine this
-was authored on has no .NET SDK. Expect to fix small compile errors on first build.
+Verified. Built and run on .NET SDK 10.0.400 against the customer's exact package
+versions; the results table above is measured, not predicted.
+
+> Note for this container specifically: `libicu` is not installed, so runs need
+> `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1`. That is an artefact of this box, not
+> of the repro.
 
 ## Deliberately left out
 
