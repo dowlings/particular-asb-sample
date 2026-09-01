@@ -134,21 +134,26 @@ documentation flags that case. This is a reasonable read of the docs that hits a
 undocumented edge, not a customer mistake.
 
 Worth telling them that on 10.2.8 this is currently the only wire-up that suppresses the
-file — and that it is a workaround with a shelf life. Both halves are deprecated, on
-different schedules and in different packages:
+file. Nothing forces them off it: pinned to NServiceBus 10.2.8 and
+NServiceBus.Extensions.Logging 4.1.0, the fix keeps working indefinitely.
 
-| API                      | Package                        | Error from | Removed in |
-| ------------------------ | ------------------------------ | ---------- | ---------- |
-| `LogManager.UseFactory`  | `NServiceBus`                  | 11         | 12         |
-| `ExtensionsLoggerFactory`| `NServiceBus.Extensions.Logging` | 5        | 6          |
+The problem is what happens when they do upgrade. Both halves are deprecated, in different
+packages on different schemes:
 
-The binding deadline is the bridge package, not core. `NServiceBus.Extensions.Logging` is at
-4.1.0 today — which is the version the customer already has — so its next major removes the
-only fix we currently have, likely well before NServiceBus 12.
+| API                       | Package                          | Error from | Removed in |
+| ------------------------- | -------------------------------- | ---------- | ---------- |
+| `LogManager.UseFactory`   | `NServiceBus`                    | 11         | 12         |
+| `ExtensionsLoggerFactory` | `NServiceBus.Extensions.Logging` | 5          | 6          |
 
-Both obsolete messages point users to "configure logging on the host builder", which is
-exactly what does not work for out-of-slot statements. That looks like something to raise
-with the NServiceBus team rather than leave as guidance.
+Both obsolete messages direct users to "configure logging on the host builder" — which is
+exactly what this repro shows does not work for out-of-slot statements. The bridge is being
+retired *because* core now uses Microsoft.Extensions.Logging natively, but the native path
+does not cover the fallback case the bridge covers.
+
+So the deprecation removes the escape hatch without replacing its function. On the day they
+move to NServiceBus 11, `LogManager.UseFactory` becomes a compile error and there is no
+supported fix left. That is worth raising with the NServiceBus team on its own merits, not
+because of any deadline — I have no information about the release timing of either package.
 
 ## Running it
 
