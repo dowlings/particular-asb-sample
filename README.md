@@ -155,6 +155,33 @@ move to NServiceBus 11, `LogManager.UseFactory` becomes a compile error and ther
 supported fix left. That is worth raising with the NServiceBus team on its own merits, not
 because of any deadline — I have no information about the release timing of either package.
 
+## Why the Azure Functions host does not have this problem
+
+An `NServiceBusTriggerFunction` app on the same NServiceBus version never writes the file.
+`NServiceBus.AzureFunctions.Worker.ServiceBus` 7.1.2 does the fix in a static constructor:
+
+```csharp
+// ServiceBusTriggeredEndpointConfiguration.cs, line 18
+#pragma warning disable CS0618 // Type or member is obsolete
+static ServiceBusTriggeredEndpointConfiguration() => LogManager.UseFactory(FunctionsLoggerFactory.Instance);
+#pragma warning restore CS0618
+```
+
+That runs on first touch of the type, during `builder.AddNServiceBus()`, before any
+NServiceBus logging happens — so `EndpointCreator` never registers the file provider and
+`GetDefaultLogger()` never reaches `FallbackLoggerFactory`. Out-of-slot entries are not lost
+either: `FunctionsLoggerFactory` holds an `AsyncLocal<ILogger>` set per invocation, and
+queues entries when none is set, flushing them into the next invocation's logger.
+
+Two things follow.
+
+Particular suppress `CS0618` in their own shipping code to make this work, which is good
+evidence that there is currently no non-deprecated way to achieve it.
+
+And the asymmetry is the real bug story: same NServiceBus version, same transport, but the
+Functions host is immune and the generic/web host is not — purely because one package sets
+the factory in a static constructor and `AddNServiceBusEndpoint` does not.
+
 ## Every way to control the default logging
 
 The complete public surface for influencing NServiceBus logging in 10.2.8 is five
