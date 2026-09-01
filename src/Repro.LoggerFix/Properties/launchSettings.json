@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "Debug the failure": {
+      "commandName": "Project",
+      "commandLineArgs": "--debug",
+      "dotnetRunMessages": true
+    },
+    "Debug the failure (customer's exact exception, racy)": {
+      "commandName": "Project",
+      "commandLineArgs": "--debug --race",
+      "dotnetRunMessages": true
+    },
+    "Self-terminating (reports a result)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true
+    }
+  }
+}

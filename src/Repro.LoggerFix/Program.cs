@@ -52,6 +52,20 @@ _ = host.Services.GetRequiredService<ClaimCheckLike>();
 Console.WriteLine($"Log directory: {logDirectory}");
 Console.WriteLine($"Mode         : {mode}");
 
+// --debug leaves the exception unhandled and waits for Ctrl+C, so a debugger breaks on the
+// throw instead of the sample swallowing it. Without it the sample self-terminates and
+// reports a result, which is what the scripts need.
+var debugMode = args.Contains("--debug");
+
+if (debugMode)
+{
+    Console.WriteLine();
+    Console.WriteLine("Debug mode: press Ctrl+C to shut down and trigger the failure.");
+    Console.WriteLine("Set a breakpoint in NServiceBus RollingLogger.cs at SyncFileSystem().");
+    await host.RunAsync();
+    return 0;
+}
+
 var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
 _ = Task.Run(async () =>
 {

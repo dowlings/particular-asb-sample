@@ -68,3 +68,36 @@ LogManager.Use<DefaultFactory>().Directory(logDirectory);
 That deprecated API is the only one that reaches the fallback logger.
 `Configure<RollingLoggerProviderOptions>` affects only the provider registered in the host
 container, which is disabled whenever the host has providers of its own.
+
+## Debugging it
+
+Clone this repo and NServiceBus side by side - the project's default
+`NServiceBusPath` is `../../../NServiceBus`, a sibling of this repo, so no configuration is
+needed:
+
+```
+some-folder/
+  particular-asb-sample/
+  NServiceBus/
+```
+
+Build the analyzer projects in the NServiceBus clone once, then open
+`Repro.LoggerFix.csproj` and run the **Debug the failure** profile. It passes `--debug`,
+which leaves the exception unhandled and waits for Ctrl+C instead of self-terminating, so the
+debugger breaks on the throw.
+
+Because NServiceBus is a `ProjectReference`, breakpoints work directly in its source. Useful
+places:
+
+- `RollingLogger.SyncFileSystem()` - where the failure happens
+- `RollingLogger.WriteLine()` - where it should have been caught
+- `LogManager.SlotAwareLogger.Write()` - watch it fall through to `GetDefaultLogger()`
+  because no endpoint slot is active
+- `ClaimCheckLike.Dispose()` - the caller
+
+To break on the original `DirectoryNotFoundException` rather than the `AggregateException`
+that Microsoft.Extensions.Logging rethrows, enable first-chance breaking: in Visual Studio,
+**Debug > Windows > Exception Settings**, tick **Common Language Runtime Exceptions**.
+
+Remember the failure only happens on shutdown, so trigger Ctrl+C once the endpoint has
+started.
