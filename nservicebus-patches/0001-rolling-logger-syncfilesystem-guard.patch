@@ -1,4 +1,4 @@
-From 9ffa0d90bab2526d90bf386224783e8a64c5792a Mon Sep 17 00:00:00 2001
+From 2533fc5acc7fcc60c538c367acdd1dae9658a9f2 Mon Sep 17 00:00:00 2001
 From: Claude <claude@dowling.co.nz>
 Date: Tue, 1 Sep 2026 09:43:54 +0000
 Subject: [PATCH] Do not let log file preparation throw into calling code

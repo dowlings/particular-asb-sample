@@ -10,17 +10,21 @@ the write. `SyncFileSystem()` enumerates the target directory and reads the size
 newest matching file, and both fail if another process removes files concurrently. The
 exception then propagates out of the log statement and can take down the caller.
 
-Branch pushed for review:
-https://github.com/claudedowling/NServiceBus/tree/fix/rolling-logger-syncfilesystem-throws
+Master is the target; the 10.2 branch is the backport.
 
-Based on `release-10.2`, the branch tag `10.2.8` was cut from.
+Branches pushed for review:
+- master:  https://github.com/claudedowling/NServiceBus/tree/fix/rolling-logger-syncfilesystem-throws
+- 10.2:    https://github.com/claudedowling/NServiceBus/tree/backport/rolling-logger-syncfilesystem-throws-10.2
+
+`RollingLogger.cs` and `RollingLoggerTests.cs` are byte-identical on `master` and
+`release-10.2`, so the same commit applies cleanly to both. Verified on each: 28 passed.
 
 ### Applying it to your own fork
 
 ```bash
 git clone git@github.com:<you>/NServiceBus.git
 cd NServiceBus
-git checkout -b fix/rolling-logger-syncfilesystem-throws origin/release-10.2
+git checkout -b fix/rolling-logger-syncfilesystem-throws origin/master
 git am --reset-author ../nservicebus-patches/0001-rolling-logger-syncfilesystem-guard.patch
 ```
 
